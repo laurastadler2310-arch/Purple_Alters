@@ -2,9 +2,27 @@ import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import SidebarLayout from "../components/SidebarLayout";
-import { useAppData } from "./AppDataContext";
+import type { Alter } from "../constants/alters";
+import { useAppData } from "../contexts";
 
-function createEmptyAlter() {
+type CustomField = {
+  id: string
+  label: string
+  value: string
+}
+
+type AlterDraft = {
+  id: string
+  name: string
+  pronouns: string
+  role: string
+  bio: string
+  color: string
+  avatarUrl: string
+  fields: CustomField[]
+  friendIds: string[]
+}
+function createEmptyAlter(): AlterDraft {
   return {
     id: "",
     name: "",
@@ -41,7 +59,7 @@ function rgbToHex({ r, g, b }: { r: number; g: number; b: number }) {
 export default function ManageScreen() {
   const { alters, updateAlter, addAlter } = useAppData();
   const [selectedAlterId, setSelectedAlterId] = useState<string>(alters[0]?.id ?? "");
-  const [draft, setDraft] = useState(createEmptyAlter());
+  const [draft, setDraft] = useState<AlterDraft>(createEmptyAlter());
   const wheelColors = [
     "#EF4444",
     "#F59E0B",
@@ -60,7 +78,9 @@ export default function ManageScreen() {
 
   useEffect(() => {
     if (selectedAlter) {
-      setDraft(selectedAlter);
+      if (selectedAlter) {
+  setDraft(selectedAlter as AlterDraft);
+}
     } else {
       setDraft(createEmptyAlter());
     }
@@ -93,6 +113,22 @@ export default function ManageScreen() {
   };
 
   const saveAlter = () => {
+    if (selectedAlter) {
+      const normalizedAlter: Alter = {
+        ...draft,
+        ownerId: selectedAlter.ownerId,
+        id: draft.id || `alter-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        fields: draft.fields.map((field) => ({
+          ...field,
+          id: field.id || `${Date.now()}-${Math.random()}`,
+        })),
+      };
+
+      updateAlter(normalizedAlter);
+      router.replace({ pathname: "/", params: { hideActions: "1" } });
+      return;
+    }
+
     const normalizedAlter = {
       ...draft,
       id: draft.id || `alter-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -102,14 +138,9 @@ export default function ManageScreen() {
       })),
     };
 
-    if (selectedAlter) {
-      updateAlter(normalizedAlter);
-      router.replace({ pathname: "/", params: { hideActions: "1" } });
-    } else {
-      addAlter(normalizedAlter);
-      setSelectedAlterId(normalizedAlter.id);
-      router.replace({ pathname: "/", params: { hideActions: "1" } });
-    }
+    addAlter(normalizedAlter);
+    setSelectedAlterId(normalizedAlter.id);
+    router.replace({ pathname: "/", params: { hideActions: "1" } });
   };
 
   const selectNewAlter = () => {

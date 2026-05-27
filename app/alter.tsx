@@ -1,15 +1,15 @@
 import { useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    View
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View
 } from "react-native";
 import { getOtherAlters } from "../constants/alters";
-import { useAppData } from "./AppDataContext";
+import { useAppData } from "../contexts";
 
 export default function AlterScreen() {
   const params = useLocalSearchParams();

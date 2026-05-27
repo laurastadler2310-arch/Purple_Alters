@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import SidebarLayout from "../components/SidebarLayout";
-import { useAppData } from "./AppDataContext";
+import { useAppData } from "../contexts";
 
 export default function FriendsScreen() {
-  const { alters, people, toggleFriend, addPerson } = useAppData();
+  const { alters, people, toggleFriend, addPerson, addFriendByCode } = useAppData();
   const [selectedAlterId, setSelectedAlterId] = useState<string>(alters[0]?.id ?? "");
   const [newPersonName, setNewPersonName] = useState("");
   const [newPersonAvatar, setNewPersonAvatar] = useState("");
+  const [friendCodeInput, setFriendCodeInput] = useState("");
 
   const selectedAlter = useMemo(
     () => alters.find((alter) => alter.id === selectedAlterId) ?? null,
@@ -22,6 +23,12 @@ export default function FriendsScreen() {
     [selectedAlter, people]
   );
 
+  const myFriendIds = useMemo(() => new Set(alters.flatMap((alter) => alter.friendIds)), [alters]);
+  const myFriends = useMemo(
+    () => people.filter((person) => myFriendIds.has(person.id)),
+    [people, myFriendIds]
+  );
+
   const saveNewPerson = () => {
     if (!newPersonName.trim()) return;
     addPerson({
@@ -33,6 +40,22 @@ export default function FriendsScreen() {
     });
     setNewPersonName("");
     setNewPersonAvatar("");
+  };
+
+  const addPersonByCode = () => {
+    if (!friendCodeInput.trim()) return;
+
+    const person = addFriendByCode(friendCodeInput.trim());
+    if (!person) {
+      Alert.alert("Friend code invalid", "Please enter a valid friend code.");
+      return;
+    }
+
+    if (selectedAlter && !selectedAlter.friendIds.includes(person.id)) {
+      toggleFriend(selectedAlter.id, person.id);
+    }
+
+    setFriendCodeInput("");
   };
 
   return (
@@ -73,6 +96,24 @@ export default function FriendsScreen() {
             </Pressable>
           );
         })}
+      </View>
+
+      <View style={{ marginTop: 24, backgroundColor: "#111827", borderRadius: 20, padding: 16 }}>
+        <Text style={{ color: "white", fontSize: 18, fontWeight: "700" }}>Friends I have</Text>
+        {myFriends.length === 0 ? (
+          <Text style={{ color: "#9CA3AF", marginTop: 12 }}>
+            You don't have any friends yet. Add someone by code or from the person list.
+          </Text>
+        ) : (
+          <View style={{ marginTop: 12, gap: 12 }}>
+            {myFriends.map((person) => (
+              <View key={person.id} style={{ backgroundColor: "#1F2937", borderRadius: 16, padding: 12 }}>
+                <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>{person.name}</Text>
+                <Text style={{ color: "#9CA3AF", marginTop: 4 }}>{person.bio}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {selectedAlter ? (
@@ -122,6 +163,41 @@ export default function FriendsScreen() {
           </View>
 
           <Text style={{ color: "white", marginTop: 24, fontSize: 18, fontWeight: "700" }}>
+            Add a friend by code
+          </Text>
+
+          <View style={{ marginTop: 16, backgroundColor: "#1F2937", borderRadius: 20, padding: 16 }}>
+            <Text style={{ color: "#D1D5DB", marginBottom: 12 }}>
+              Enter another user's friend code to add them to your network.
+            </Text>
+            <TextInput
+              value={friendCodeInput}
+              onChangeText={setFriendCodeInput}
+              placeholder="Friend code"
+              placeholderTextColor="#9CA3AF"
+              style={{
+                backgroundColor: "#111827",
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                color: "white",
+                height: 48,
+                marginBottom: 12,
+              }}
+            />
+            <Pressable
+              onPress={addPersonByCode}
+              style={{
+                backgroundColor: "#2563EB",
+                padding: 14,
+                borderRadius: 16,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "700" }}>Add friend by code</Text>
+            </Pressable>
+          </View>
+
+          <Text style={{ color: "#D1D5DB", marginTop: 24, fontSize: 18, fontWeight: "700" }}>
             Add an online person
           </Text>
 

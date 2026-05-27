@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import SidebarLayout from "../components/SidebarLayout";
-import { useAppData } from "./AppDataContext";
+import { useAppData } from "../contexts";
 
 export default function CustomFieldsScreen() {
   const { alters, updateAlter } = useAppData();

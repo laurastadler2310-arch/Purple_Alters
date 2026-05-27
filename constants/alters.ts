@@ -6,6 +6,8 @@ export type CustomField = {
 
 export type Person = {
   id: string;
+  ownerId: string;
+  friendCode?: string;
   name: string;
   avatarUrl?: string;
   online: boolean;
@@ -14,6 +16,7 @@ export type Person = {
 
 export type Alter = {
   id: string;
+  ownerId: string;
   name: string;
   pronouns: string;
   color: string;
@@ -36,6 +39,7 @@ export type ChatThreads = Record<string, Message[]>;
 export const initialAlters: Alter[] = [
   {
     id: "kai",
+    ownerId: "demo",
     name: "Kai",
     pronouns: "they/he",
     color: "#8B5CF6",
@@ -50,6 +54,7 @@ export const initialAlters: Alter[] = [
   },
   {
     id: "ember",
+    ownerId: "demo",
     name: "Ember",
     pronouns: "she/they",
     color: "#EF4444",
@@ -61,6 +66,7 @@ export const initialAlters: Alter[] = [
   },
   {
     id: "rowan",
+    ownerId: "demo",
     name: "Rowan",
     pronouns: "he/him",
     color: "#10B981",
@@ -75,6 +81,7 @@ export const initialAlters: Alter[] = [
 export const initialPeople: Person[] = [
   {
     id: "person-alex",
+    ownerId: "demo",
     name: "Alex",
     avatarUrl: "https://i.pravatar.cc/150?img=45",
     online: true,
@@ -82,6 +89,7 @@ export const initialPeople: Person[] = [
   },
   {
     id: "person-sam",
+    ownerId: "demo",
     name: "Sam",
     avatarUrl: "https://i.pravatar.cc/150?img=30",
     online: false,

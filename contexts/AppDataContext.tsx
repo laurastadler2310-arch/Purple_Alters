@@ -2,39 +2,62 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import {
     Alter,
-    initialAlters,
-    initialChatThreads,
-    initialPeople,
     type ChatThreads,
     type Message,
-    type Person,
+    type Person
 } from "../constants/alters";
+import { useAuth } from "./AuthContext";
 
 type AppDataContextValue = {
+  currentUserId: string | null;
   alters: Alter[];
   people: Person[];
   chatThreads: ChatThreads;
-  addAlter: (alter: Alter) => void;
+  addAlter: (alter: Omit<Alter, "ownerId">) => void;
   updateAlter: (alter: Alter) => void;
   toggleFriend: (alterId: string, personId: string) => void;
-  addPerson: (person: Person) => void;
+  addPerson: (person: Omit<Person, "ownerId">) => void;
+  addFriendByCode: (friendCode: string) => Person | null;
   addMessage: (threadKey: string, message: Message) => void;
 };
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
-const STORAGE_KEY = "@alters-app/data";
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
-  const [alters, setAlters] = useState<Alter[]>(initialAlters);
-  const [people, setPeople] = useState<Person[]>(initialPeople);
-  const [chatThreads, setChatThreads] = useState<ChatThreads>(initialChatThreads);
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? null;
+  const storageKey = currentUserId
+    ? `@alters-app/data:${currentUserId}`
+    : "@alters-app/data:guest";
+
+  const [alters, setAlters] = useState<Alter[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [chatThreads, setChatThreads] = useState<ChatThreads>({});
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    if (!currentUserId) {
+      setAlters([]);
+      setPeople([]);
+      setChatThreads({});
+      setHydrated(true);
+      return;
+    }
+
+    setHydrated(false);
+    setAlters([]);
+    setPeople([]);
+    setChatThreads({});
+
     const loadSavedData = async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await AsyncStorage.getItem(storageKey);
+
         if (!raw) {
+          setAlters([]);
+          setPeople([]);
+          setChatThreads({});
+          setHydrated(true);
           return;
         }
 
@@ -55,16 +78,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
 
     void loadSavedData();
-  }, []);
+  }, [currentUserId, storageKey]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !currentUserId) return;
 
     const saveData = async () => {
       try {
         await AsyncStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ alters, people, chatThreads })
+          storageKey,
+          JSON.stringify({
+            alters,
+            people,
+            chatThreads,
+          })
         );
       } catch (error) {
         console.warn("Failed to save app data:", error);
@@ -72,15 +99,24 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
 
     void saveData();
-  }, [alters, people, chatThreads, hydrated]);
+  }, [alters, people, chatThreads, hydrated, currentUserId, storageKey]);
 
-  const addAlter = (alter: Alter) => {
-    setAlters((current) => [...current, alter]);
+  const addAlter = (alter: Omit<Alter, "ownerId">) => {
+    if (!currentUserId) return;
+    setAlters((current) => [
+      ...current,
+      {
+        ...alter,
+        ownerId: currentUserId,
+      },
+    ]);
   };
 
   const updateAlter = (alter: Alter) => {
     setAlters((current) =>
-      current.map((item) => (item.id === alter.id ? alter : item))
+      current.map((item) =>
+        item.id === alter.id ? alter : item
+      )
     );
   };
 
@@ -88,7 +124,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setAlters((current) =>
       current.map((item) => {
         if (item.id !== alterId) return item;
+
         const hasFriend = item.friendIds.includes(personId);
+
         return {
           ...item,
           friendIds: hasFriend
@@ -99,8 +137,42 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const addPerson = (person: Person) => {
+  const addPerson = (person: Omit<Person, "ownerId">) => {
+    if (!currentUserId) return;
+    setPeople((current) => [
+      ...current,
+      {
+        ...person,
+        ownerId: currentUserId,
+      },
+    ]);
+  };
+
+  const addFriendByCode = (friendCode: string) => {
+    if (!currentUserId) return null;
+
+    const trimmedCode = friendCode.trim().toUpperCase();
+    if (!trimmedCode) return null;
+
+    const existing = people.find(
+      (person) => person.friendCode?.toUpperCase() === trimmedCode
+    );
+
+    if (existing) {
+      return existing;
+    }
+
+    const person: Person = {
+      id: `friend-${trimmedCode}`,
+      ownerId: currentUserId,
+      friendCode: trimmedCode,
+      name: `Friend ${trimmedCode}`,
+      online: true,
+      bio: "Friend added by code.",
+    };
+
     setPeople((current) => [...current, person]);
+    return person;
   };
 
   const addMessage = (threadKey: string, message: Message) => {
@@ -113,6 +185,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   return (
     <AppDataContext.Provider
       value={{
+        currentUserId,
         alters,
         people,
         chatThreads,
@@ -120,6 +193,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         updateAlter,
         toggleFriend,
         addPerson,
+        addFriendByCode,
         addMessage,
       }}
     >
@@ -130,8 +204,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
 export function useAppData() {
   const value = useContext(AppDataContext);
+
   if (!value) {
     throw new Error("useAppData must be used within AppDataProvider");
   }
+
   return value;
 }

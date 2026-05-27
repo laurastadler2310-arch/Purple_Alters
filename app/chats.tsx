@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import SidebarLayout from "../components/SidebarLayout";
 import { getThreadKey, type Message } from "../constants/alters";
-import { useAppData } from "./AppDataContext";
+import { useAppData } from "../contexts";
 
 export default function ChatsScreen() {
   const { alters, chatThreads, addMessage } = useAppData();

@@ -1,4 +1,4 @@
-import { router, useSegments } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Animated,
@@ -8,12 +8,14 @@ import {
     Text,
     View
 } from "react-native";
+import { useAuth } from "../contexts";
 
 const MENU_WIDTH = 260;
 const MENU_ITEMS = [
   { label: "Home", route: "/" },
   { label: "Manage Alters", route: "/manage" },
   { label: "Friends", route: "/friends" },
+  { label: "Friend Code", route: "/friend-code" },
   { label: "Custom Fields", route: "/custom-fields" },
   { label: "Chats", route: "/chats" },
 ];
@@ -25,8 +27,11 @@ type SidebarLayoutProps = {
 
 export default function SidebarLayout({ title, children }: SidebarLayoutProps) {
   const [open, setOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const slide = useRef(new Animated.Value(-MENU_WIDTH)).current;
   const segments = useSegments();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
 
   const activeRoute = useMemo(() => {
     const lastSegment = segments[segments.length - 1];
@@ -53,8 +58,47 @@ export default function SidebarLayout({ title, children }: SidebarLayoutProps) {
         <Pressable onPress={() => setOpen((value) => !value)} style={styles.menuButton}>
           <Text style={styles.menuButtonText}>{open ? "Close" : "Menu"}</Text>
         </Pressable>
+
         <Text style={styles.headerTitle}>{title}</Text>
+
+        <View style={styles.accountWrapper}>
+          <Pressable
+            onPress={() => setAccountOpen((value) => !value)}
+            style={styles.accountButton}
+          >
+            <Text style={styles.accountButtonText}>
+              {user?.email?.charAt(0).toUpperCase() ?? "A"}
+            </Text>
+          </Pressable>
+        </View>
       </View>
+
+      {accountOpen ? (
+        <View style={styles.accountMenu}>
+          <Text style={styles.accountMenuTitle}>Signed in as</Text>
+          <Text style={styles.accountMenuUser}>{user?.email ?? user?.id ?? "Unknown account"}</Text>
+          <Pressable
+            onPress={() => {
+              setAccountOpen(false);
+              signOut();
+            }}
+            style={styles.accountMenuAction}
+          >
+            <Text style={styles.accountMenuActionText}>Log out</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setAccountOpen(false);
+              router.push("/login");
+            }}
+            style={[styles.accountMenuAction, styles.accountMenuActionSecondary]}
+          >
+            <Text style={[styles.accountMenuActionText, styles.accountMenuActionSecondaryText]}>
+              Add another account
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.content}>{children}</View>
 
@@ -107,10 +151,71 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "700",
   },
+  accountWrapper: {
+    marginLeft: "auto",
+  },
+  accountButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  accountButtonText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 16,
+  },
   headerTitle: {
     color: "white",
     fontSize: 20,
     fontWeight: "700",
+  },
+  accountMenu: {
+    position: "absolute",
+    top: 72,
+    right: 16,
+    width: 220,
+    backgroundColor: "#0F172A",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    zIndex: 30,
+  },
+  accountMenuTitle: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  accountMenuUser: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 16,
+  },
+  accountMenuAction: {
+    backgroundColor: "#2563EB",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  accountMenuActionSecondary: {
+    backgroundColor: "#1F2937",
+    borderWidth: 1,
+    borderColor: "#2563EB",
+  },
+  accountMenuActionText: {
+    color: "white",
+    fontWeight: "700",
+  },
+  accountMenuActionSecondaryText: {
+    color: "#2563EB",
   },
   content: {
     flex: 1,
