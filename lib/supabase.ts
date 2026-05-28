@@ -10,7 +10,7 @@ const supabaseAnonKey =
 
 export const supabase = createClient(
   supabaseUrl,
-  supabaseAnonKey,
+  supabaseAnonKey,s
   {
     auth: {
       storage: Platform.OS === 'web'
